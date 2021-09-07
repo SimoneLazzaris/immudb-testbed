@@ -11,41 +11,41 @@ def nfloat(v):
 	if v=='':
 		return 0.0
 	return float(v)
+def init_():
+    connection = immudb.client.ImmudbClient()
+    connection.login("immudb","immudb")
+    data=[]
+    connection.sqlExec("""create table geolocation 
+      (geonameid integer,
+       name varchar,
+       asciiname varchar,
+       alternatenames varchar,
+       latitude integer,
+       longitude integer,
+       feature_class varchar,
+       feature_code varchar,
+       country_code varchar,
+       cc2 varchar,
+       admin1_code varchar,
+       admin2_code varchar,
+       admin3_code varchar,
+       admin4_code varchar,
+       population integer,
+       elevation integer,
+       dem integer,
+       timezone varchar,
+       modification_date varchar,
+       primary key geonameid)
+       """) 
+    connection.sqlExec("CREATE INDEX ON geolocation(latitude)")
 
-connection = immudb.client.ImmudbClient()
-connection.login("immudb","immudb")
-data=[]
-connection.sqlExec("""create table geolocation 
-  (geonameid integer,
-   name varchar,
-   asciiname varchar,
-   alternatenames varchar,
-   latitude integer,
-   longitude integer,
-   feature_class varchar,
-   feature_code varchar,
-   country_code varchar,
-   cc2 varchar,
-   admin1_code varchar,
-   admin2_code varchar,
-   admin3_code varchar,
-   admin4_code varchar,
-   population integer,
-   elevation integer,
-   dem integer,
-   timezone varchar,
-   modification_date varchar,
-   primary key geonameid)
-   """) 
-connection.sqlExec("CREATE INDEX ON geolocation(latitude)")
-
-connection.shutdown()
+    connection.shutdown()
 
 t0=time.time()
 lnum=multiprocessing.Value('i')
 ti=t0
 step=500
-ntask=1
+ntask=10
 
 def notify(taskid, rowid):
         with lnum.get_lock():
@@ -94,21 +94,23 @@ def writer(wid, q):
                         data=[]
                         notify(wid, rid)
         logging.info("Writer %d end", wid)    
-                        
-qq = multiprocessing.SimpleQueue()
-rr=multiprocessing.Process(target=reader, args=(qq,))
-rr.start()
-pp=[]
-for i in range(0,ntask):
-        pp.append(multiprocessing.Process(target=writer, args=(i,qq)))
-        pp[i].start()
-t0=time.time()
-rr.join()
-logging.info("Reader out")
-for i in range(0,ntask):
-        qq.put(None)
-for i in range(0,ntask):
-        pp[i].join()
+
+
+if __name__=='__main__':                        
+    qq = multiprocessing.SimpleQueue()
+    rr=multiprocessing.Process(target=reader, args=(qq,))
+    rr.start()
+    pp=[]
+    for i in range(0,ntask):
+            pp.append(multiprocessing.Process(target=writer, args=(i,qq)))
+            pp[i].start()
+    t0=time.time()
+    rr.join()
+    logging.info("Reader out")
+    for i in range(0,ntask):
+            qq.put(None)
+    for i in range(0,ntask):
+            pp[i].join()
 #-- oracle
 #create table geolocation(
    #geonameid integer primary key,
