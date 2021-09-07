@@ -97,6 +97,7 @@ def writer(wid, q):
 
 
 if __name__=='__main__':                        
+    init_()
     qq = multiprocessing.SimpleQueue()
     rr=multiprocessing.Process(target=reader, args=(qq,))
     rr.start()
